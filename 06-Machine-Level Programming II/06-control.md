@@ -1,15 +1,13 @@
 # Control: Condition codes
 ## Processor State
 寄存器`%rsp`是栈指针（后面会讲）
-寄存器`%rip`当前执行的指令的地址
-**Status of recents tests(Condition codes)**: CF, ZF, SF, OF......，他们是由其他指令运行结果设置的1位flag
+寄存器`%rip`指向**下一条即将被执行的指令的地址**
+**Status of recents tests(Condition codes)**: CF, ZF, SF, OF......，他们是由**其他指令运行结果**设置的1位flag
 ## Condition Codes
 - CF(Carry Flag) 进位（无符号）
 - ZF(Zero Flag) 运算结果为0，这个位会被置1
 - SF(Sign Flag) 负数——置1
 - OF 有符号数溢出
-> [!NOTE] 以"q"结尾的指令
-> 表示对64位数据进行操作
 
 **显式设置Condition Codes**
 - `cmpq b, a`，计算a-b但是只设置Condition Codes，不改变其他结果
@@ -18,7 +16,8 @@
 ![[Pasted image 20260512191648.png|495]]
 - `testq b, a`，计算a&b
 ![[Pasted image 20260512191910.png|213]]
-用于检测一个数是什么样子的
+如果满足则置1，否则置0
+
 ## Read Condition Codes
 读取、使用
 ### SetX指令
@@ -41,6 +40,9 @@
 ![[Pasted image 20260512202221.png|224]]![[Pasted image 20260512202234.png|343]]
 汇编语言为：
 ![[Pasted image 20260512202251.png|297]]
+jmp有直接跳转和间接跳转：
+- 直接跳转：直接通过标签跳转
+- 间接跳转：使用`*`将操作数中的值作为跳转目标
 ### Goto Code
 使用了goto的C语言代码：
 ![[Pasted image 20260512202753.png|266]]
@@ -81,3 +83,22 @@ GCC只有在两个分支都是简单直接计算的时候才会使用conditional
 在switch语句中获取所需位置的时间复杂度是O(1)
 ![[Pasted image 20260512213443.png]]
 注意这里是直接算地址然后跳转过去，而不是一个个遍历然后查找！
+# 补充
+## `rep`和`repz`
+和`ret`组合(`repz retq`)用于防止跳转到`ret`，用于使得代码在AMD上运行速度更快，此外**不会改变任何代码行为**
+## 机器代码
+```object
+0: 48 89 f8        mov   %rdi,%rax
+3: eb 03           jmp   8 <loop+0x8>
+5: 48 d1 f8        sar   %rax
+8: 48 85 c0        test  %rax, %rax
+b: 7f f8           jg    5 <loop+0x5>
+d: f3 c3           repz retq
+```
+注意这里jump指令后面的数字（这里数字都是补码表示）
+```
+对于第二个指令：0xf8(目标编码第二个字节) + 0xd(下一条指令的地址) = 0x5(跳转到的地址)
+第一个指令：0x03 + 0x5 = 0x8
+```
+跳转到的地址（相对）为**跳转指令目标编码的第二个字节+下一条指令的地址**
+当然，链接过后的地址变为绝对地址，则是：**跳转目的地的绝对地址=跳转指令目标编码的第二个字节+下一条指令的绝对地址**
