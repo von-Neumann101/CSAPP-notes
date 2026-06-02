@@ -1,17 +1,21 @@
 *ABI——应用程序二进制接口（课程使用的约定）*
+**过程**：提供了封装代码的方式，用一组指定的参数和一个可选的返回值实现了某种功能，使得程序可以在不同地方调用他（过程的形式包含但不限于：函数、方法、子例程、处理函数）
+
 ![[Pasted image 20260519082517.png|484]]
 # Stack Structure
 如何将控制传递给函数，栈的结构适合处理**调用**
 ## x86-64 Stack
 `%rsp`寄存器永远指向栈顶（内存小端），故其值为当前栈顶的地址
 通过递减该指针，我们可以填入数据（扩大栈）
-![[Pasted image 20260519083251.png|250]] ^c5d394
+![[Pasted image 20260519083251.png|250]]
 ## push & pop
 `pushq Src`通过递减栈顶指针，然后在新的位置（存在`%rsp`中）写入对应数据
 `popq Dst`递增栈顶指针，然后把原来的栈顶存在Dst（由于内存不能直接到内存，所以Dst只能是寄存器）
 # Calling Convention
 ## Passing Control
-![[Pasted image 20260519084644.png|597]]
+![[Pasted image 20260519084644.png|572]]
+非常巧妙的一点是——一个过程如果执行完了，他的栈帧就为空了。在栈里面就非常适合在P调用完过程Q以后，栈指针处于P的帧处。
+![[Pasted image 20260602190157.png|320]]
 ### Procedure Control Flow
 - Procedure call: `call label`把返回地址存入栈，然后jump到label处
 - Procedure return: `ret`弹出栈的地址，然后jump到该地址
@@ -21,7 +25,7 @@
 调用`callq`以后：
 ![[Pasted image 20260519085710.png]]
 把`callq`这条指令执行完以后下一条应该执行的命令的地址push入栈
-同时，把call的目标的地址存入[[06-control#^c0a5e2|%rip]]寄存器（这也是必须的）
+同时，把call的目标的地址存入`%rip`（指向**下一条即将被执行的指令的地址**）寄存器（这也是必须的）
 
 调用`retq`以后：
 ![[Pasted image 20260519090812.png]]
