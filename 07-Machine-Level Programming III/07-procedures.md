@@ -16,6 +16,7 @@
 ![[Pasted image 20260519084644.png|572]]
 非常巧妙的一点是——一个过程如果执行完了，他的栈帧就为空了。在栈里面就非常适合在P调用完过程Q以后，栈指针处于P的帧处。
 ![[Pasted image 20260602190157.png|320]]
+所以，因为局部变量的作用域只在声明的函数处，由于栈的结构，一定能保证别的函数（和他无关，或者调用他的函数）无法使用这个变量。其实这里因果是反着的，正是因为栈的特性，才保证了这一特性。
 ### Procedure Control Flow
 - Procedure call: `call label`把返回地址存入栈，然后jump到label处
 - Procedure return: `ret`弹出栈的地址，然后jump到该地址
@@ -67,7 +68,7 @@ ABI规定：函数传入的前六个参数需放在如下的六个寄存器中�
 ### x86-64 Linux Register Usage
 #### 1
 ![[Pasted image 20260520092040.png]]
-Caller-saved的意思是——**Caller**在调用函数以后，还需要某个寄存器的旧值，Caller在调用之前就需要**把它们保存起来**
+Caller-saved的意思是——**Caller**在调用函数以后，还需要某个寄存器的旧值（使他们在调用函数的时候不被覆盖），Caller在调用之前就需要**把它们保存起来**（`%rbx, %rbp, %r12~%r15`)
 #### 2
 ![[Pasted image 20260520092400.png]]
 can mix & match的意思是`%rbp`有多重用法——Frame Pointer或者是普通的Register
