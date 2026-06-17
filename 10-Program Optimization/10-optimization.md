@@ -197,7 +197,7 @@ x = x*t2
 通过选择最佳的$L$和$K$可以得到最快的速度
 ![[Pasted image 20260614194627.png]]
 # Programming with AVX2
-新一代CPU提供了一种新寄存器`%ymm`，有32字节
+新一代CPU提供了一种[[08-data#Floating Point|新寄存器]]`%ymm`，有32字节
 ![[Pasted image 20260614195527.png|530]]
 ## SIMD Operations
 ![[Pasted image 20260614195639.png]]
