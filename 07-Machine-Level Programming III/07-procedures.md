@@ -19,7 +19,7 @@
 所以，因为局部变量的作用域只在声明的函数处，由于栈的结构，一定能保证别的函数（和他无关，或者调用他的函数）无法使用这个变量。其实这里因果是反着的，正是因为栈的特性，才保证了这一特性。
 ### Procedure Control Flow
 - Procedure call: `call label`把返回地址存入栈，然后jump到label处
-- Procedure return: `ret`弹出栈的地址，然后jump到该地址
+- Procedure return: `ret`弹出`%rsp`指向的的地址，然后jump到该地址继续执行程序
 #### Example
 ![[Pasted image 20260519085604.png|472]]
 
