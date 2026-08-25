@@ -2,6 +2,7 @@
 # Linking
 ## Linking
 ![[Pasted image 20260825101407.png|660]]
+此处`main.c`里声明了一个函数体为空的函数，是为了告诉编译器“它的定义在其他模块中，先允许我调用它。”
 
 如果在终端输入：
 ```bash
@@ -67,4 +68,57 @@ ELF是object文件的标准的二进制格式——上述的三种类型使用�
 ![[Pasted image 20260825155409.png|593]]
 **规则3可能引发问题**，`-fno-common`会使得出现多个弱符号时Linkers报错
 ### Linker Puzzles
-![[Pasted image 20260825160548.png]]注意这里的**overwrite**——如果程序一次在写入的时候选择了那个`double x`，由于`double x`是8字节，在写入(`x=1`)的时候有可能写到
+![[Pasted image 20260825160548.png|689]]
+#### Example
+`a.c`
+```C
+#include <stdio.h>
+
+int x;                  // 弱符号，a.c 认为 x 是 int
+
+void set_x(void);
+void show_x_in_b(void);
+
+int main(void)
+{
+    printf("a.c: &x = %p\n", (void *)&x);
+
+    set_x();
+
+    printf("a.c: x = %d\n", x);
+    show_x_in_b();
+
+    return 0;
+}
+```
+`b.c`
+```C
+#include <stdio.h>
+
+double x;               // 弱符号，b.c 认为 x 是 double
+
+void set_x(void)
+{
+    printf("b.c: &x = %p\n", (void *)&x);
+    x = 3.14;
+}
+
+void show_x_in_b(void)
+{
+    printf("b.c: x = %f\n", x);
+}
+```
+终端输入：
+```bash
+gcc -fcommon a.c b.c -o demo
+./demo
+```
+可能输出：
+```
+a.c: &x = 0x404028
+b.c: &x = 0x404028
+a.c: x = 1374389535
+b.c: x = 3.140000
+```
+
+两个地址完全相同，说明两个程序用的是同一个`x`。但是`a.c`按照int的方法解读一个存储为`double`类型的数据
