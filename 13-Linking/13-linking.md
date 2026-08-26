@@ -36,7 +36,7 @@ ELF是object文件的标准的二进制格式——上述的三种类型使用�
 - .text section：代码（只读）
 - .rodata section：只读数据，比如switch的跳表
 - .data section：包含所有已初始化全局变量的
-- .bss section：**定义**了未初始化的全局变量（不占空间）
+- .bss section：**定义**了未显式初始化，或者初始化为 0 的全局变量和 `static` 变量（不占空间）
 
 ![[Pasted image 20260825110649.png|230]]
 - .symtab section：符号表
@@ -67,9 +67,9 @@ ELF是object文件的标准的二进制格式——上述的三种类型使用�
 #### Linker’s Symbol Rules
 ![[Pasted image 20260825155409.png|593]]
 **规则3可能引发问题**，`-fno-common`会使得出现多个弱符号时Linkers报错
-### Linker Puzzles
+#### Linker Puzzles
 ![[Pasted image 20260825160548.png|689]]
-#### Example
+##### Example
 `a.c`
 ```C
 #include <stdio.h>
@@ -122,3 +122,39 @@ b.c: x = 3.140000
 ```
 
 两个地址完全相同，说明两个程序用的是同一个`x`。但是`a.c`按照int的方法解读一个存储为`double`类型的数据
+#### Global Variables
+尽可能避免使用全局变量。如果必须要使用，尽量使用`static`修饰，并且在定义时初始化（如果使用外部全局变量，使用`extern`修饰——告知编译器这是由别的模块**定义**的）
+### Relocation
+刚刚Linkers已经把每个符号引用和唯一的符号定义绑定起来，现在要把所有的object文件组合起来
+
+依旧是之前的例子：
+![[Pasted image 20260826105506.png|239]]
+除了`main.o`和`sum.o`，还有**程序开始前和结束后实际运行的系统代码**
+
+Linkers决定某种顺序，并把他们**连续地**按照顺序放在一起（包括符号表之类的）
+![[Pasted image 20260826105741.png|277]]
+
+同时，Linker必须要决定程序被加载时，在哪里存储这些不同的符号——这里会给`main()`, `swap()`, `array`绝对内存地址
+#### Relocation Entries
+编译器并不知道链接器会给每个符号什么地址。所以编译器创建了给链接器的提示（红色），称为**重定位条目**
+![[Pasted image 20260826110611.png|544]]
+注意第三行，通常情况下一个数组的起始地址不会是`0x0`，这正是**编译器不知道地址导致的**，所以他只是把一个立即数放到`%edi`（传入的第一个参数）
+最左边的那些数`0,4,9,e,...`是他们在这个模块的偏移量444
+红字前面的字母（数字）是地址的偏移量，是编译器命令链接器要Relocate的地址偏移量
+```
+bf 00 00 00 00 #bf是mov的字节表示，后面的0指的是地址
+↑  ↑
+9  a
+```
+
+Relocation结束的完整代码：
+![[Pasted image 20260826113933.png]]
+注意，`call`指令使用的是`%rip+偏移量`来跳转的，字节码是`05 00 00 00`是同样的原因
+## Loading Executable Object Files
+![[Pasted image 20260826114512.png|620]]
+Linkers生成的object file可以直接被加载到内存中，而不用进一步修改
+左边是ELF，右边是[[09-advanced#Memory Layout|内存的结构]]
+在堆和栈之间的巨大空隙中，是共享库的区域（`.so`都加载到这个区域）
+## Loading Executable Object Files
+我们可以写一个大的`.c`文件，然后放上所有的函数，程序员只需要和自己的程序链接即可；或者一个函数一个文件。但这都不是好的想法
+### Old-fashioned Solution: Static Libraries
