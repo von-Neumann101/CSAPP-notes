@@ -158,3 +158,22 @@ Linkers生成的object file可以直接被加载到内存中，而不用进一�
 ## Loading Executable Object Files
 我们可以写一个大的`.c`文件，然后放上所有的函数，程序员只需要和自己的程序链接即可；或者一个函数一个文件。但这都不是好的想法
 ### Old-fashioned Solution: Static Libraries
+`.a`(archive) 归档文件，**是`.o`文件的集合，每一个`.o`文件都写了一个函数**
+### Creating Static Libraries
+![[Pasted image 20260826145507.png|582]]
+如果这里有任何一个函数发生变化了，需要重新编译那个函数的`.o`文件，并重新归档所有的`.o`文件
+
+![[Pasted image 20260826145646.png|643]]
+### Linking with Static Libraries
+![[Pasted image 20260826145744.png|539]]
+图示：（`libc.a`主要包含了诸如`printf();`之类的函数）
+![[Pasted image 20260826145821.png|574]]
+
+> [!NOTE] `vector.h`
+> `#include "vector.h"`在预处理阶段会被展开为
+> ```
+> void addvec(int *x, int *y, int *z, int n);
+void multvec(int *x, int *y, int *z, int n);
+> ```
+
+链接器在使用静态块库的时候，会按照命令行上的顺序，扫描所有的
