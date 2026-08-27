@@ -155,7 +155,7 @@ Relocation结束的完整代码：
 Linkers生成的object file可以直接被加载到内存中，而不用进一步修改
 左边是ELF，右边是[[09-advanced#Memory Layout|内存的结构]]
 在堆和栈之间的巨大空隙中，是共享库的区域（`.so`都加载到这个区域）
-## Loading Executable Object Files
+
 我们可以写一个大的`.c`文件，然后放上所有的函数，程序员只需要和自己的程序链接即可；或者一个函数一个文件。但这都不是好的想法
 ### Old-fashioned Solution: Static Libraries
 `.a`(archive) 归档文件，**是`.o`文件的集合，每一个`.o`文件都写了一个函数**
@@ -169,11 +169,23 @@ Linkers生成的object file可以直接被加载到内存中，而不用进一�
 图示：（`libc.a`主要包含了诸如`printf();`之类的函数）
 ![[Pasted image 20260826145821.png|574]]
 
+链接器解析外部引用的算法：
+- 按照**命令行中出现的顺序**，依次扫描 `.o` 文件和 `.a` 文件。
+- 在扫描过程中，维护一张“当前尚未解析的符号引用”（出现了定义，但是没有出现引用）列表。
+- 每当遇到一个新的 `.o` 文件或 `.a` 文件 `obj_i` 时，就尝试使用 `obj_i` 中定义的符号，解析列表中尚未解析的符号引用。
+- 扫描结束后，如果未解析列表中仍有符号，则链接报错。
+
 > [!NOTE] `vector.h`
 > `#include "vector.h"`在预处理阶段会被展开为
 > ```
 > void addvec(int *x, int *y, int *z, int n);
 void multvec(int *x, int *y, int *z, int n);
 > ```
-
-链接器在使用静态块库的时候，会按照命令行上的顺序，扫描所有的
+### Modern Solution: Shared Libraries
+它们**包含的代码和数据在程序实际加载加载到内存时，或程序加载完实际运行时才被加载**。也被称作动态链接库(DLLs,`.so`文件)
+共享库可以被多个进程同时使用
+#### Dynamic Linking at Load-time
+![[Pasted image 20260827113123.png|619]]
+右上角的指令意思是把那两个函数编译、链接成一个动态链接库 `libvector.so`
+经过链接器(Partially linked)也只是在符号表中加一个标记，表示当程序加载时需要解析这些函数的引用
+**以运行时需要DLL（可以多个程序共用）为代价，换取了更小的文件大小**
