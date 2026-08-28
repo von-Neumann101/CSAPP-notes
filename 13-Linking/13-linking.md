@@ -189,3 +189,62 @@ void multvec(int *x, int *y, int *z, int n);
 右上角的指令意思是把那两个函数编译、链接成一个动态链接库 `libvector.so`
 经过链接器(Partially linked)也只是在符号表中加一个标记，表示当程序加载时需要解析这些函数的引用
 **以运行时需要DLL（可以多个程序共用）为代价，换取了更小的文件大小**
+#### Dynamic Linking at Run-time
+![[Pasted image 20260827213835.png|651]]![[Pasted image 20260827214106.png|654]]
+这里非常直接地体现了“**程序运行时才连接共享库**”。因为我们甚至没有
+
+程序已经开始**执行`main`以后**，才执行这条语句：
+```C
+handle = dlopen("./libvector.so", RTLD_LAZY); //获得库的句柄
+```
+运行时寻找函数定义：
+```C
+addvec = dlsym(handle, "addvec");
+```
+**这里使用字符串`"addvec"`查找`libvector.so`的动态符号表，找`addvec`的运行地址，并保存到函数指针`addvec`**
+> [!NOTE] `.h`文件 & `.so`
+> 前者定义函数该怎么调用，类似于java的接口，只是规定了函数名、参数、返回值类型
+> 后者则是有函数的具体实现
+## Summary
+![[Pasted image 20260827221215.png|530]]
+# Case study: Library interpositioning 
+**拦截来自库的函数调用**，可能是为了记录一些统计数据或者进行一些错误检查，然后才正式进行调用（同时我们不能改变源代码）
+## Example Program
+![[Pasted image 20260828100253.png|278]]
+在程序运行时，且不动源代码的情况下，跟踪被分配和释放的内存块的地址及大小
+### Compile-time Interpositioning
+在源程序**被编译成机器代码之前**，通过预处理器**宏**，把对 `malloc`、`free` 的调用替换成自己编写的**包装函数**
+![[Pasted image 20260828101449.png|568]]
+
+![[Pasted image 20260828101817.png|616]]
+```bash
+linux> make intc 
+gcc -Wall -DCOMPILETIME -c mymalloc.c
+gcc -Wall -I. -o intc int.c mymalloc.o 
+linux> make runc 
+./intc 
+malloc(32)=0x1edc010 
+free(0x1edc010)
+```
+`-I`是让预处理器**在当前目录寻找头文件**，所以我们使用的是自己编写的`malloc.h`
+### Link-­time Interpositioning
+和编译期interpose的区别在于`malloc` 的引用在哪个阶段被改成包装函数
+![[Pasted image 20260828103403.png|674]]
+![[Pasted image 20260828103649.png|585]]
+`gcc`是一个总的调度器(`cpp`, `cc1`, `as`, `ld`)，`--warp`是链接器`ld`的选项。所以要加上`-WL,`以表示后面用逗号分隔的参数转交给链接器
+
+注意函数名字不是随便起的，必须是：
+```text
+__wrap_原函数名
+__real_原函数名
+```
+第一个是包装函数，是最终实际调用的函数；而第二个是原状的函数
+```text
+malloc        → __wrap_malloc
+__real_malloc → malloc
+```
+### Load/Run-­time Interpositioning
+![[Pasted image 20260828110804.png|659]]
+`RELD_NEXT`表示在下一个地方查找，找到的也就是原版的`malloc`（不一定是，因为可能加载了多个共享对象）
+![[Pasted image 20260828112715.png|673]]
+`(LD_PRELOAD="./mymalloc.so" ./intr)`设置这个环境变量意味着在**解决引用的时候首先在**这个位置查找
